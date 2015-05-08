@@ -143,7 +143,7 @@ MediaFrame.prototype.displayImage = function displayImage(blob,
   this.imageblob = blob;
 
   // Create an element to display the image (using CSS background-image)
-  this.image = document.createElement('div');
+  this.image = document.createElement('img');
   this.container.appendChild(this.image);
   this.image.className = 'image-view';
   this.image.style.transformOrigin = 'center center';
@@ -180,7 +180,6 @@ MediaFrame.prototype.displayImage = function displayImage(blob,
   // Create a blob URL for it, combine it with the media fragment for
   // downsampling, and put it in CSS background-image format.
   this.imageurl = URL.createObjectURL(blob);
-  this.fullBackgroundImage = 'url(' + this.imageurl + ')';
 
   // Note: There is a default value for orientation/mirrored since some
   // images don't have EXIF data to retrieve this information.
@@ -269,7 +268,7 @@ MediaFrame.prototype.displayImage = function displayImage(blob,
     self.previewurl = null;
     self.previewBackgroundImage = null;
     self.displayingPreview = false;
-    self._displayImage(self.fullBackgroundImage,
+    self._displayImage(self.imageurl, self.previewBackgroundImage,
                        self.fullsizeWidth, self.fullsizeHeight);
   }
 
@@ -286,11 +285,10 @@ MediaFrame.prototype.displayImage = function displayImage(blob,
     // Update the CSS background image spec for the full image to use
     // both images so that the transition from the preview to the full
     // image is smooth.
-    self.fullBackgroundImage += ', ' + self.previewBackgroundImage;
 
     // Start off with the preview image displayed
     self.displayingPreview = true;
-    self._displayImage(self.previewBackgroundImage,
+    self._displayImage(self.previewurl, 'none',
                        self.previewWidth, self.previewHeight);
   }
 };
@@ -303,8 +301,9 @@ MediaFrame.prototype.displayImage = function displayImage(blob,
 // from the preview image to the full image, we actually use a string with
 // two urls in it so that the full image replaces the preview image when it
 // is loaded.
-MediaFrame.prototype._displayImage = function(backgroundImage, width, height) {
+MediaFrame.prototype._displayImage = function(foregroundImageUrl, backgroundImage, width, height) {
   // The background image should be a string in CSS format.
+  this.image.src = foregroundImageUrl;
   this.image.style.backgroundImage = backgroundImage;
   this.image.style.width = width + 'px';
   this.image.style.height = height + 'px';
@@ -327,7 +326,7 @@ MediaFrame.prototype._displayImage = function(backgroundImage, width, height) {
   // animating those changes when the user double taps to zoom.
   var temp = this.image.clientLeft; // jshint ignore:line
 
-  console.log(width, height, backgroundImage, this.image.style.transform);
+  console.log('_displayImage', width, height, foregroundImageUrl, ' --- ', backgroundImage, this.image.style.transform);
 };
 
 // This function adds a label for accessibility to the image frame.
@@ -370,7 +369,7 @@ MediaFrame.prototype._switchToFullSizeImage = function _switchToFull() {
     return;
   }
   this.displayingPreview = false;
-  this._displayImage(this.fullBackgroundImage,
+  this._displayImage(this.imageurl, 'none',
                      this.fullsizeWidth, this.fullsizeHeight);
 };
 
@@ -383,7 +382,7 @@ MediaFrame.prototype._switchToPreviewImage = function _switchToPreview() {
   }
 
   this.displayingPreview = true;
-  this._displayImage(this.previewBackgroundImage,
+  this._displayImage(this.previewurl, 'none',
                      this.previewWidth, this.previewHeight);
 };
 
@@ -446,6 +445,7 @@ MediaFrame.prototype.clear = function clear() {
 
   if (this.image) {
     this.container.removeChild(this.image);
+    this.image.src = '';
     this.image.style.backgroundImage = 'none';
   }
   this.image = null;
